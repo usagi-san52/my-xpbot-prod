@@ -329,7 +329,7 @@ client.on("messageCreate", async (message) => {
   // -------------------------
   // ⑮ プレイヤー選択 → チーム分け UI（最大50人対応）
   // -------------------------
-  if (message.content === "!team ") {
+  if (message.content === "!team") {
     const { ActionRowBuilder, StringSelectMenuBuilder } = require("discord.js");
 
     const players = await listPlayers(guildId);
