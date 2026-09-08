@@ -15,6 +15,191 @@ const client = new Client({
   ],
 });
 
+// ブキ一覧
+const weapons = [
+  // シューター
+  "わかばシューター",
+  "もみじシューター",
+  "スプラシューター",
+  "スプラシューターコラボ",
+  "スプラシューター煌",
+  "プロモデラーMG",
+  "プロモデラーRG",
+  "プロモデラー彩",
+  "N-ZAP85",
+  "N-ZAP89",
+  "スペースシューター",
+  "スペースシューターコラボ",
+  "シャープマーカー",
+  "シャープマーカーネオ",
+  "シャープマーカーGECK",
+  "プライムシューター",
+  "プライムシューターコラボ",
+  "プライムシューターFRZN",
+  "52ガロン",
+  "52ガロンデコ",
+  "96ガロン",
+  "96ガロンデコ",
+  "96ガロン爪",
+  "ジェットスイーパー",
+  "ジェットスイーパーカスタム",
+  "ジェットスイーパーCOBR",
+  "ボールドマーカー",
+  "ボールドマーカーネオ",
+  "L3リールガン",
+  "L3リールガンD",
+  "L3リールガン箔",
+  "H3リールガン",
+  "H3リールガンD",
+  "H3リールガンSNAK",
+  "ボトルガイザー",
+  "ボトルガイザーフォイル",
+
+  // ブラスター
+  "ホットブラスター",
+  "ホットブラスターカスタム",
+  "ホットブラスター艶",
+  "ラピッドブラスター",
+  "ラピッドブラスターデコ",
+  "Rブラスターエリート",
+  "Rブラスターエリートデコ",
+  "RブラスターエリートWNTR",
+  "ロングブラスター",
+  "ロングブラスターカスタム",
+  "クラッシュブラスター",
+  "クラッシュブラスターネオ",
+  "ノヴァブラスター",
+  "ノヴァブラスターネオ",
+  "S-BLAST92",
+  "S-BLAST91",
+
+  // ローラー
+  "スプラローラー",
+  "スプラローラーコラボ",
+  "カーボンローラー",
+  "カーボンローラーデコ",
+  "カーボンローラーANGL",
+  "ヴァリアブルローラー",
+  "ヴァリアブルローラーフォイル",
+  "ダイナモローラー",
+  "ダイナモローラーテスラ",
+  "ダイナモローラー冥",
+  "ワイドローラー",
+  "ワイドローラーコラボ",
+  "ワイドローラー惑",
+
+  // フデ
+  "パブロ",
+  "パブロ・ヒュー",
+  "ホクサイ",
+  "ホクサイ・ヒュー",
+  "ホクサイ彗",
+  "フィンセント",
+  "フィンセント・ヒュー",
+  "フィンセントBRNZ",
+
+  // チャージャー
+  "スプラチャージャー",
+  "スプラチャージャーコラボ",
+  "スプラチャージャーFRST",
+  "スプラスコープ",
+  "スプラスコープコラボ",
+  "スプラスコープFRST",
+  "リッター4K",
+  "リッター4Kカスタム",
+  "4Kスコープ",
+  "4Kスコープカスタム",
+  "スクイックリンα",
+  "スクイックリンβ",
+  "ソイチューバー",
+  "ソイチューバーカスタム",
+  "R-PEN/5H",
+  "R-PEN/5B",
+  "14式竹筒銃・甲",
+  "14式竹筒銃・乙",
+
+  // スロッシャー
+  "バケットスロッシャー",
+  "バケットスロッシャーデコ",
+  "ヒッセン",
+  "ヒッセン・ヒュー",
+  "ヒッセンASH",
+  "スクリュースロッシャー",
+  "スクリュースロッシャーネオ",
+  "モップリン",
+  "モップリンD",
+  "モップリン角",
+  "オーバーフロッシャー",
+  "オーバーフロッシャーデコ",
+  "エクスプロッシャー",
+  "エクスプロッシャーカスタム",
+
+  // スピナー
+  "スプラスピナー",
+  "スプラスピナーコラボ",
+  "スプラスピナーPYTN",
+  "バレルスピナー",
+  "バレルスピナーデコ",
+  "ハイドラント",
+  "ハイドラントカスタム",
+  "ハイドラント圧",
+  "クーゲルシュライバー",
+  "クーゲルシュライバー・ヒュー",
+  "ノーチラス47",
+  "ノーチラス79",
+  "イグザミナー",
+  "イグザミナー・ヒュー",
+
+  // マニューバー
+  "スプラマニューバー",
+  "スプラマニューバーコラボ",
+  "スプラマニューバー耀",
+  "デュアルスイーパー",
+  "デュアルスイーパーカスタム",
+  "デュアルスイーパー蹄",
+  "ケルビン525",
+  "ケルビン525デコ",
+  "クアッドホッパーブラック",
+  "クアッドホッパーホワイト",
+  "スパッタリー",
+  "スパッタリー・ヒュー",
+  "スパッタリーOWL",
+  "ガエンFF",
+  "ガエンFFカスタム",
+
+  // シェルター
+  "パラシェルター",
+  "パラシェルターソレーラ",
+  "キャンピングシェルター",
+  "キャンピングシェルターソレーラ",
+  "キャンピングシェルターCREM",
+  "スパイガジェット",
+  "スパイガジェットソレーラ",
+  "スパイガジェット繚",
+  "24式張替傘・甲",
+  "24式張替傘・乙",
+
+  // ワイパー
+  "ドライブワイパー",
+  "ドライブワイパーデコ",
+  "ドライブワイパーRUST",
+  "ジムワイパー",
+  "ジムワイパー・ヒュー",
+  "ジムワイパー封",
+  "デンタルワイパーミント",
+  "デンタルワイパースミ",
+
+  // ストリンガー
+  "トライストリンガー",
+  "トライストリンガーコラボ",
+  "トライストリンガー燈",
+  "LACT-450",
+  "LACT-450デコ",
+  "LACT-MILK",
+  "フルイドV",
+  "フルイドVカスタム",
+];
+
 // XP を取得
 async function getXP(guildId, player) {
   const { data, error } = await supabase
@@ -381,6 +566,27 @@ client.on("messageCreate", async (message) => {
       components: rows,
     });
   }
+
+  if (message.content === "!weapon") {
+    const { ActionRowBuilder, StringSelectMenuBuilder } = require("discord.js");
+
+    const menu = new StringSelectMenuBuilder()
+      .setCustomId("weapon_mode_select")
+      .setPlaceholder("ブキ抽選モードを選んでね")
+      .setMinValues(1)
+      .setMaxValues(1)
+      .addOptions([
+        { label: "1種類だけ選ぶ（全員同じ）", value: "single" },
+        { label: "選んだプレイヤーに別々のブキを割り当てる", value: "multi" },
+      ]);
+
+    const row = new ActionRowBuilder().addComponents(menu);
+
+    return message.reply({
+      content: "ブキ抽選モードを選んでね！",
+      components: [row],
+    });
+  }
 });
 
 client.on("interactionCreate", async (interaction) => {
@@ -426,6 +632,79 @@ client.on("interactionCreate", async (interaction) => {
       `🎯 **選択ルール: ${selectedRules.join(", ")}**\n` +
         `🎲 抽選ルール: **${rule}**\n` +
         `🗺️ ステージ: **${stage}**`,
+    );
+  }
+
+  // ブキ抽選モード選択
+  if (interaction.customId === "weapon_mode_select") {
+    const mode = interaction.values[0];
+
+    // ① 1種類だけ選ぶ
+    if (mode === "single") {
+      const weapon = weapons[Math.floor(Math.random() * weapons.length)];
+      return interaction.reply(`🎯 今回のブキは **${weapon}** だよ！`);
+    }
+
+    // ② プレイヤー選択 UI を表示（最大8人）
+    if (mode === "multi") {
+      const guildId = interaction.guild.id;
+      const players = await listPlayers(guildId);
+
+      if (players.length === 0) {
+        return interaction.reply("まだプレイヤーが登録されていないよ");
+      }
+
+      const {
+        ActionRowBuilder,
+        StringSelectMenuBuilder,
+      } = require("discord.js");
+
+      const menu = new StringSelectMenuBuilder()
+        .setCustomId("weapon_player_select")
+        .setPlaceholder("ブキを割り当てるプレイヤーを選んでね（最大8人）")
+        .setMinValues(1)
+        .setMaxValues(8)
+        .addOptions(
+          players.map((p) => ({
+            label: p.player,
+            value: p.player,
+          })),
+        );
+
+      const row = new ActionRowBuilder().addComponents(menu);
+
+      return interaction.reply({
+        content: "プレイヤーを選んでね！（最大8人）",
+        components: [row],
+      });
+    }
+  }
+
+  // ブキ割り当て（選んだプレイヤーに割り当て）
+  if (interaction.customId === "weapon_player_select") {
+    await interaction.deferReply();
+
+    const selectedPlayers = interaction.values;
+
+    if (selectedPlayers.length === 0) {
+      return interaction.editReply("最低1人以上選んでね");
+    }
+
+    if (selectedPlayers.length > 8) {
+      return interaction.editReply("最大8人まで選べるよ");
+    }
+
+    // シャッフル
+    const shuffled = [...weapons];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+
+    const lines = selectedPlayers.map((p, i) => `${p}: ${shuffled[i]}`);
+
+    return interaction.editReply(
+      "🎯 **選んだプレイヤーのブキ抽選結果**\n" + lines.join("\n"),
     );
   }
 
