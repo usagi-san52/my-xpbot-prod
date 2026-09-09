@@ -769,8 +769,10 @@ client.on("interactionCreate", async (interaction) => {
     const sumA = bestTeamA.reduce((a, b) => a + b.xp, 0);
     const sumB = bestTeamB.reduce((a, b) => a + b.xp, 0);
 
-    const teamAList = bestTeamA.map((p) => `${p.player} (${p.xp})`).join("\n");
-    const teamBList = bestTeamB.map((p) => `${p.player} (${p.xp})`).join("\n");
+    //    const teamAList = bestTeamA.map((p) => `${p.player} (${p.xp})`).join("\n");
+    //    const teamBList = bestTeamB.map((p) => `${p.player} (${p.xp})`).join("\n");
+    const teamAList = bestTeamA.map((p) => `${p.player}`).join("\n");
+    const teamBList = bestTeamB.map((p) => `${p.player}`).join("\n");
 
     return interaction.editReply(
       `🎯 **選択人数: ${selectedPlayers.length}人**\n` +
