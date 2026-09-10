@@ -1,4 +1,13 @@
-const { Client, GatewayIntentBits } = require("discord.js");
+const {
+  Client,
+  GatewayIntentBits,
+  EmbedBuilder,
+  ActionRowBuilder,
+  StringSelectMenuBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+} = require("discord.js");
+
 const { createClient } = require("@supabase/supabase-js");
 
 // Supabase クライアント
@@ -14,6 +23,423 @@ const client = new Client({
     GatewayIntentBits.MessageContent,
   ],
 });
+
+// ===============================
+// クイズ状態保存用
+// ===============================
+const quizState = {};
+
+// ===============================
+// 1. ブキ辞書
+//    ブキカテゴリ定義
+// ===============================
+const weaponCategories = {
+  シューター: [
+    "スプラシューター",
+    "わかばシューター",
+    "プロモデラーMG",
+    "もみじシューター",
+    "N-ZAP85",
+    "スペースシューター",
+    "ボールドマーカー",
+    "プライムシューター",
+    "スプラシューターコラボ",
+    "52ガロン",
+    "N-ZAP89",
+    "スプラシューター煌",
+    "スペースシューターコラボ",
+    "L3リールガン",
+    "ボールドマーカーネオ",
+    "52ガロンデコ",
+    "ジェットスイーパー",
+    "シャープマーカー",
+    "96ガロン",
+    "プロモデラー彩",
+    "L3リールガンD",
+    "ボトルガイザー",
+    "プライムシューターコラボ",
+    "L3リールガン箔",
+    "ジェットスイーパーカスタム",
+    "ジェットスイーパーCOBR",
+    "シャープマーカーネオ",
+    "シャープマーカーGECK",
+    "96ガロンデコ",
+    "プライムシューターFRZN",
+    "H3リールガン",
+    "96ガロン爪",
+    "ボトルガイザーフォイル",
+    "H3リールガンD",
+    "H3リールガンSNAK",
+    "オーダーシューターレプリカ",
+    "オクタシューターレプリカ",
+    "ヒーローシューターレプリカ",
+    "プロモデラーRG",
+  ],
+  ローラー: [
+    "スプラローラー",
+    "カーボンローラー",
+    "スプラローラーコラボ",
+    "ダイナモローラー",
+    "ワイドローラー",
+    "ダイナモローラーテスラ",
+    "ワイドローラーコラボ",
+    "ダイナモローラー冥",
+    "ヴァリアブルローラー",
+    "ワイドローラー惑",
+    "カーボンローラーデコ",
+    "カーボンローラーANGL",
+    "ヴァリアブルローラーフォイル",
+    "オーダーローラーレプリカ",
+  ],
+  チャージャー: [
+    "スプラチャージャー",
+    "スクイックリンα",
+    "スプラチャージャーコラボ",
+    "スプラスコープ",
+    "スプラチャージャーFRST",
+    "スクイックリンβ",
+    "R-PEN/5H",
+    "スプラスコープコラボ",
+    "スプラスコープFRST",
+    "リッター4K",
+    "R-PEN/5B",
+    "リッター4Kカスタム",
+    "14式竹筒銃・甲",
+    "ソイチューバー",
+    "14式竹筒銃・乙",
+    "4Kスコープ",
+    "ソイチューバーカスタム",
+    "4Kスコープカスタム",
+    "オーダーチャージャーレプリカ",
+  ],
+  スロッシャー: [
+    "バケットスロッシャー",
+    "ヒッセン",
+    "バケットスロッシャーデコ",
+    "スクリュースロッシャー",
+    "モップリン",
+    "ヒッセンヒュー",
+    "モップリンD",
+    "オーバーフロッシャー",
+    "ヒッセンASH",
+    "モップリン角",
+    "スクリュースロッシャーネオ",
+    "オーバーフロッシャーデコ",
+    "エクスプロッシャー",
+    "エクスプロッシャーカスタム",
+    "オーダースロッシャーレプリカ",
+  ],
+  スピナー: [
+    "バレルスピナー",
+    "スプラスピナー",
+    "イグザミナー",
+    "バレルスピナーデコ",
+    "イグザミナーヒュー",
+    "ハイドラント",
+    "ハイドラントカスタム",
+    "スプラスピナーコラボ",
+    "ハイドラント圧",
+    "スプラスピナーPYTN",
+    "ノーチラス47",
+    "ノーチラス79",
+    "クーゲルシュライバー",
+    "クーゲルシュライバーヒュー",
+    "オーダースピナーレプリカ",
+  ],
+  マニューバー: [
+    "スプラマニューバー",
+    "デュアルスイーパー",
+    "スプラマニューバーコラボ",
+    "スパッタリー",
+    "スプラマニューバー耀",
+    "デュアルスイーパーカスタム",
+    "クアッドホッパーブラック",
+    "デュアルスイーパー蹄",
+    "ケルビン525",
+    "ガエンFF",
+    "クアッドホッパーホワイト",
+    "スパッタリーヒュー",
+    "ケルビン525デコ",
+    "ガエンFFカスタム",
+    "スパッタリーOWL",
+    "オーダーマニューバーレプリカ",
+  ],
+  シェルター: [
+    "パラシェルター",
+    "24式張替傘・甲",
+    "キャンピングシェルター",
+    "スパイガジェット",
+    "パラシェルターソレーラ",
+    "24式張替傘・乙",
+    "キャンピングシェルターソレーラ",
+    "スパイガジェットソレーラ",
+    "キャンピングシェルターCREM",
+    "スパイガジェット繚",
+    "オーダーシェルターレプリカ",
+  ],
+  ブラスター: [
+    "ホットブラスター",
+    "ラピッドブラスター",
+    "ホットブラスターカスタム",
+    "ホットブラスター艶",
+    "ラピッドブラスターデコ",
+    "ロングブラスター",
+    "ノヴァブラスター",
+    "ロングブラスターカスタム",
+    "S-BLAST92",
+    "クラッシュブラスター",
+    "ノヴァブラスターネオ",
+    "クラッシュブラスターネオ",
+    "Rブラスターエリート",
+    "S-BLAST91",
+    "Rブラスターエリートデコ",
+    "RブラスターエリートWNTR",
+    "オーダーブラスターレプリカ",
+  ],
+  フデ: [
+    "ホクサイ",
+    "パブロ",
+    "ホクサイヒュー",
+    "ホクサイ彗",
+    "フィンセント",
+    "パブロヒュー",
+    "フィンセントヒュー",
+    "フィンセントBRNZ",
+    "オーダーブラシレプリカ",
+  ],
+  ストリンガー: [
+    "トライストリンガー",
+    "LACT-450",
+    "トライストリンガーコラボ",
+    "LACT-450デコ",
+    "トライストリンガー燈",
+    "LACT-450MILK",
+    "フルイドⅤ",
+    "フルイドⅤカスタム",
+    "オーダーストリンガーレプリカ",
+  ],
+  ワイパー: [
+    "ドライブワイパー",
+    "ドライブワイパーデコ",
+    "ドライブワイパーRUST",
+    "ジムワイパー",
+    "ジムワイパーヒュー",
+    "デンタルワイパーミント",
+    "ジムワイパー封",
+    "デンタルワイパースミ",
+    "オーダーワイパーレプリカ",
+  ],
+};
+
+const quizWeapons = {
+  "クイックボム+ウルトラショット": ["カーボンローラーデコ"],
+  "キューバンボム+ウルトラショット": [
+    "オーダーシューターレプリカ",
+    "スプラシューター",
+    "ヒーローシューターレプリカ",
+  ],
+  "スプラッシュシールド+ウルトラショット": [
+    "ボトルガイザー",
+    "フィンセントBRNZ",
+  ],
+  "ポイントセンサー+ウルトラショット": [
+    "スクリュースロッシャーネオ",
+    "ケルビン525デコ",
+  ],
+  "トラップ+ウルトラショット": ["キャンピングシェルターソレーラ"],
+  "スプラッシュボム+ウルトラショット": ["クラッシュブラスター"],
+  "カーリングボム+ウルトラショット": ["ドライブワイパーRUST"],
+  "ジャンプビーコン+ウルトラショット": ["スプラスピナーPYTN"],
+
+  "キューバンボム+エナジースタンド": ["N-ZAP85", "RブラスターエリートWNTR"],
+  "タンサンボム+エナジースタンド": ["ヒッセン・ヒュー"],
+  "スプリンクラー+エナジースタンド": ["ダイナモローラー", "R-PEN/5H"],
+  "ジャンプビーコン+エナジースタンド": ["スパッタリー"],
+  "ポイントセンサー+エナジースタンド": ["H3リールガン"],
+  "カーリングボム+エナジースタンド": ["イグザミナー"],
+  "ラインマーカー+エナジースタンド": ["96ガロン爪"],
+
+  "キューバンボム+カニタンク": [
+    "スプラマニューバー",
+    "オーダーマニューバーレプリカ",
+  ],
+  "ラインマーカー+カニタンク": ["プライムシューター"],
+  "カーリングボム+カニタンク": ["L3リールガン", "モップリン角"],
+  "クイックボム+カニタンク": ["シャープマーカー"],
+  "ポイズンミスト+カニタンク": ["ジムワイパー・ヒュー"],
+  "スプラッシュボム+カニタンク": ["イグザミナー・ヒュー"],
+  "スプリンクラー+カニタンク": ["スプラチャージャーFRST"],
+  "スプリンクラー+カニタンク": ["スプラスコープFRST"],
+  "ジャンプビーコン+カニタンク": ["ホットブラスター艶"],
+
+  "スプラッシュボム+キューインキ": [
+    "スプラチャージャー",
+    "スプラスコープ",
+    "オーダーチャージャーレプリカ",
+  ],
+  "ラインマーカー+キューインキ": ["ジェットスイーパー"],
+  "スプリンクラー+キューインキ": ["96ガロン"],
+  "ポイズンミスト+キューインキ": ["Rブラスターエリート"],
+  "ジャンプビーコン+キューインキ": ["キャンピングシェルター"],
+  "トラップ+キューインキ": ["クーゲルシュライバー・ヒュー"],
+  "スプラッシュシールド+キューインキ": ["ワイドローラー"],
+
+  "スプラッシュボム+グレートバリア": ["わかばシューター"],
+  "カーリングボム+グレートバリア": [
+    "スプラローラー",
+    "オーダーローラーレプリカ",
+  ],
+  "ロボットボム+グレートバリア": ["ホットブラスター"],
+  "ポイントセンサー+グレートバリア": ["スクイックリンα"],
+  "ポイズンミスト+グレートバリア": ["スプラスピナーコラボ"],
+  "スプラッシュシールド+グレートバリア": ["H3リールガンD"],
+  "ラインマーカー+グレートバリア": ["24式張替傘・甲"],
+  "キューバンボム+グレートバリア": ["デンタルワイパーミント"],
+  "スプリンクラー+グレートバリア": ["ハイドラント圧"],
+  "タンサンボム+グレートバリア": ["スプラマニューバー耀"],
+
+  "タンサンボム+サメライド": ["プロモデラーMG"],
+  "トラップ+サメライド": ["スパイガジェット"],
+  "ロボットボム+サメライド": ["クアッドホッパーブラック"],
+  "トーピード+サメライド": ["スパッタリー・ヒュー"],
+  "スプリンクラー+サメライド": ["S-BLAST92"],
+  "キューバンボム+サメライド": ["モップリン"],
+  "スプラッシュシールド+サメライド": ["LACT-450デコ"],
+
+  "ロボットボム+ショクワンダー": ["カーボンローラー", "スクイックリンβ"],
+  "ラインマーカー+ショクワンダー": ["バケットスロッシャーデコ"],
+  "キューバンボム+ショクワンダー": ["ホクサイ", "オーダーブラシレプリカ"],
+  "スプラッシュボム+ショクワンダー": [
+    "ノヴァブラスター",
+    "オーダーブラスターレプリカ",
+  ],
+  "スプリンクラー+ショクワンダー": ["クアッドホッパーホワイト"],
+  "クイックボム+ショクワンダー": ["ジムワイパー", "オーダーワイパーレプリカ"],
+
+  "スプラッシュボム+トリプルトルネード": [
+    "スプラシューターコラボ",
+    "バケットスロッシャー",
+    "オーダースロッシャーレプリカ",
+    "オクタシューターレプリカ",
+  ],
+  "スプリンクラー+トリプルトルネード": [
+    "パラシェルター",
+    "オーダーシェルターレプリカ",
+  ],
+  "トラップ+トリプルトルネード": ["ラピッドブラスター"],
+  "スプラッシュシールド+トリプルトルネード": [
+    "スプラチャージャーコラボ",
+    "スプラスコープコラボ",
+  ],
+  "キューバンボム+トリプルトルネード": [
+    "シャープマーカーネオ",
+    "H3リールガンSNAK",
+  ],
+  "クイックボム+トリプルトルネード": ["ガエンFFカスタム"],
+
+  "トーピード+ホップソナー": ["もみじシューター"],
+  "スプリンクラー+ホップソナー": ["バレルスピナー", "オーダースピナーレプリカ"],
+  "スプラッシュボム+ホップソナー": ["デュアルスイーパー"],
+  "キューバンボム+ホップソナー": ["ロングブラスター"],
+  "トラップ+ホップソナー": ["リッター4K", "4Kスコープ"],
+  "カーリングボム+ホップソナー": ["フィンセント"],
+  "ジャンプビーコン+ホップソナー": ["モップリンD"],
+  "ポイントセンサー+ホップソナー": ["フルイドVカスタム"],
+
+  "スプラッシュボム+メガホンレーザー5.1ch": ["パブロ", "スパッタリーOWL"],
+  "スプラッシュシールド+メガホンレーザー5.1ch": ["52ガロン"],
+  "ジャンプビーコン+メガホンレーザー5.1ch": ["ボールドマーカーネオ"],
+  "ロボットボム+メガホンレーザー5.1ch": ["14式竹筒銃・甲"],
+  "ラインマーカー+メガホンレーザー5.1ch": ["Rブラスターエリートデコ"],
+  "ポイズンミスト+メガホンレーザー5.1ch": [
+    "トライストリンガー",
+    "オーダーストリンガーレプリカ",
+  ],
+  "トラップ+メガホンレーザー5.1ch": ["ガエンFF"],
+  "カーリングボム+メガホンレーザー5.1ch": ["スパイガジェット繚"],
+  "ポイントセンサー+メガホンレーザー5.1ch": ["ダイナモローラー冥"],
+
+  "ジャンプビーコン+テイオウイカ": [
+    "スプラローラーコラボ",
+    "リッター4Kカスタム",
+    "4Kスコープカスタム",
+  ],
+  "ポイントセンサー+テイオウイカ": ["バレルスピナーデコ"],
+  "スプラッシュボム+テイオウイカ": ["ロングブラスターカスタム"],
+  "ラインマーカー+テイオウイカ": ["オーバーフロッシャーデコ"],
+  "スプラッシュシールド+テイオウイカ": ["96ガロンデコ"],
+  "クイックボム+テイオウイカ": ["スプラシューター煌"],
+  "ロボットボム+テイオウイカ": ["ホクサイ彗"],
+
+  "ロボットボム+デコイチラシ": ["N-ZAP89"],
+  "ジャンプビーコン+デコイチラシ": ["デュアルスイーパーカスタム"],
+  "タンサンボム+デコイチラシ": ["14式竹筒銃・乙", "カーボンローラーANGL"],
+  "スプラッシュボム+デコイチラシ": ["ダイナモローラーテスラ"],
+  "カーリングボム+デコイチラシ": ["クラッシュブラスターネオ"],
+  "スプリンクラー+デコイチラシ": ["トライストリンガーコラボ"],
+  "ポイズンミスト+デコイチラシ": ["キャンピングシェルターCREM"],
+
+  "カーリングボム+スミナガシート": ["52ガロンデコ"],
+  "キューバンボム+スミナガシート": ["ヴァリアブルローラーフォイル"],
+  "トラップ+スミナガシート": ["ハイドラントカスタム"],
+  "ロボットボム+スミナガシート": ["ボトルガイザーフォイル"],
+  "トーピード+スミナガシート": ["スパイガジェットソレーラ"],
+  "スプラッシュボム+スミナガシート": ["ヒッセンASH"],
+  "クイックボム+スミナガシート": ["プロモデラー彩"],
+  "ポイントセンサー+スミナガシート": ["デュアルスイーパー蹄"],
+
+  "スプラッシュシールド+ウルトラチャクチ": ["エクスプロッシャーカスタム"],
+  "キューバンボム+ウルトラチャクチ": ["ノーチラス79"],
+  "カーリングボム+ウルトラチャクチ": ["スプラマニューバーコラボ"],
+  "ポイントセンサー+ウルトラチャクチ": ["ホットブラスターカスタム"],
+  "ポイズンミスト+ウルトラチャクチ": ["24式張替傘・乙"],
+  "クイックボム+ウルトラチャクチ": ["ジェットスイーパーCOBR"],
+  "トーピード+ウルトラチャクチ": ["ワイドローラー惑"],
+
+  "スプリンクラー+アメフラシ": ["オーバーフロッシャー"],
+  "ジャンプビーコン+アメフラシ": ["ホクサイ・ヒュー"],
+  "ポイントセンサー+アメフラシ": ["エクスプロッシャー", "ノーチラス47"],
+  "ポイズンミスト+アメフラシ": [
+    "ジェットスイーパーカスタム",
+    "シャープマーカーGECK",
+  ],
+  "ラインマーカー+アメフラシ": ["ワイドローラーコラボ"],
+  "スプラッシュシールド+アメフラシ": ["R-PEN/5B"],
+
+  "トラップ+ウルトラハンコ": ["パブロ・ヒュー"],
+  "カーリングボム+ウルトラハンコ": ["ボールドマーカー"],
+  "クイックボム+ウルトラハンコ": ["L3リールガンD", "スプラスピナー"],
+  "タンサンボム+ウルトラハンコ": [
+    "ノヴァブラスターネオ",
+    "ソイチューバーカスタム",
+  ],
+  "トーピード+ウルトラハンコ": ["ドライブワイパー"],
+  "ロボットボム+ウルトラハンコ": ["フルイドV"],
+
+  "ロボットボム+ジェットパック": ["パラシェルターソレーラ"],
+  "ポイズンミスト+ジェットパック": ["ヒッセン"],
+  "トーピード+ジェットパック": ["ラピッドブラスターデコ"],
+  "タンサンボム+ジェットパック": ["クーゲルシュライバー"],
+  "トラップ+ジェットパック": ["スペースシューターコラボ"],
+  "スプラッシュシールド+ジェットパック": ["デンタルワイパースミ"],
+  "スプラッシュボム+ジェットパック": ["L3リールガン箔"],
+  "ラインマーカー+ジェットパック": ["トライストリンガー燈"],
+
+  "タンサンボム+ナイスダマ": ["スクリュースロッシャー"],
+  "スプラッシュシールド+ナイスダマ": ["ケルビン525"],
+  "キューバンボム+ナイスダマ": ["プライムシューターコラボ"],
+  "ロボットボム+ナイスダマ": ["ハイドラント", "ジムワイパー封"],
+  "スプリンクラー+ナイスダマ": ["プロモデラーRG"],
+  "クイックボム+ナイスダマ": ["S-BLAST91"],
+  "トーピード+ナイスダマ": ["LACT-450MILK"],
+
+  "トーピード+マルチミサイル": ["ソイチューバー"],
+  "トラップ+マルチミサイル": ["ヴァリアブルローラー"],
+  "カーリングボム+マルチミサイル": ["LACT450"],
+  "ジャンプビーコン+マルチミサイル": ["ドライブワイパーデコ"],
+  "ポイントセンサー+マルチミサイル": ["フィンセント・ヒュー"],
+  "スプラッシュボム+マルチミサイル": ["プライムシューターFRZN"],
+};
 
 // ブキ一覧
 const weapons = [
@@ -256,6 +682,95 @@ async function listPlayers(guildId) {
   return data ?? [];
 }
 
+// ===============================
+// カテゴリ別 SelectMenu を作る
+// ===============================
+function createCategoryMenus(categories) {
+  const {
+    ActionRowBuilder,
+    StringSelectMenuBuilder,
+    ButtonBuilder,
+    ButtonStyle,
+  } = require("discord.js");
+
+  const rows = [];
+
+  for (const cat of Object.keys(categories)) {
+    const weapons = categories[cat];
+
+    const pageSize = 25;
+    for (let i = 0; i < weapons.length; i += pageSize) {
+      const pageItems = weapons.slice(i, i + pageSize);
+
+      const menu = new StringSelectMenuBuilder()
+        .setCustomId(`quiz_cat_${cat}_${i / pageSize}`)
+        .setPlaceholder(`${cat} のブキを選んでね（ページ ${i / pageSize + 1}）`)
+        .setMinValues(0)
+        .setMaxValues(pageItems.length)
+        .addOptions(
+          pageItems.map((w) => ({
+            label: w,
+            value: w,
+          })),
+        );
+
+      rows.push(new ActionRowBuilder().addComponents(menu));
+    }
+  }
+
+  const decideButton = new ButtonBuilder()
+    .setCustomId("quiz_decide")
+    .setLabel("決定")
+    .setStyle(ButtonStyle.Primary);
+
+  rows.push(new ActionRowBuilder().addComponents(decideButton));
+
+  return rows;
+}
+
+// 今のカテゴリのメニューを出す関数
+function showCategoryMenu(channel, userId) {
+  const state = quizState[userId];
+  const category = state.categoryOrder[state.currentCategoryIndex];
+  const weapons = weaponCategories[category];
+
+  const rows = [];
+  const pageSize = 25;
+
+  for (let i = 0; i < weapons.length; i += pageSize) {
+    const pageItems = weapons.slice(i, i + pageSize);
+
+    const menu = new StringSelectMenuBuilder()
+      .setCustomId(`quiz_select_weapon_${i / pageSize}`)
+      .setPlaceholder(
+        `${category} のブキを選んでね（ページ ${i / pageSize + 1}）`,
+      )
+      .setMinValues(0)
+      .setMaxValues(pageItems.length)
+      .addOptions(
+        pageItems.map((w) => ({
+          label: w,
+          value: w,
+        })),
+      );
+
+    rows.push(new ActionRowBuilder().addComponents(menu));
+  }
+
+  const nextButton = new ButtonBuilder()
+    .setCustomId("quiz_next_category")
+    .setLabel("次のカテゴリへ")
+    .setStyle(ButtonStyle.Secondary);
+
+  rows.push(new ActionRowBuilder().addComponents(nextButton));
+
+  const embed = new EmbedBuilder()
+    .setTitle("カテゴリ選択")
+    .setDescription(`今は **${category}** のブキを選んでね`);
+
+  channel.send({ embeds: [embed], components: rows });
+}
+
 client.once("clientReady", () => {
   console.log(`ログイン完了: ${client.user.tag}`);
 });
@@ -388,6 +903,39 @@ client.on("messageCreate", async (message) => {
         lines.join("\n") +
         `\n\n合計XP: ${total}\n最大コスト: ${maxCost}\n残りコスト: ${remain}`,
     );
+  }
+
+  // ===============================
+  // !quiz1（カテゴリ別 UI 版）
+  // ===============================
+  if (message.content === "!quiz1") {
+    const keys = Object.keys(quizWeapons);
+    const randomKey = keys[Math.floor(Math.random() * keys.length)];
+    const [sub, sp] = randomKey.split("+");
+    const answers = quizWeapons[randomKey];
+
+    const categoryOrder = Object.keys(weaponCategories);
+
+    quizState[message.author.id] = {
+      answers,
+      selectedWeapons: [],
+      streak: quizState[message.author.id]?.streak || 0,
+      categoryOrder,
+      currentCategoryIndex: 0,
+    };
+
+    // ★ まず問題文を出す
+    const embed = new EmbedBuilder()
+      .setTitle("🎯 サブ＋スペシャル当てゲーム")
+      .setDescription(
+        `**サブ：${sub}**\n**スペシャル：${sp}**\n\nこれらの組み合わせのブキを全部選んでね！`,
+      )
+      .setColor(0x00aeef);
+
+    await message.reply({ embeds: [embed] });
+
+    // ★ 次にカテゴリ選択メニューを出す
+    showCategoryMenu(message.channel, message.author.id);
   }
 
   // -------------------------
@@ -590,9 +1138,96 @@ client.on("messageCreate", async (message) => {
 });
 
 client.on("interactionCreate", async (interaction) => {
-  if (!interaction.isStringSelectMenu()) return;
+  const userId = interaction.user.id;
 
+  // ============================================================
+  // クイズ関連の処理（customId で判定する）
+  // ============================================================
+  if (
+    interaction.customId.startsWith("quiz_select_weapon_") ||
+    interaction.customId === "quiz_next_category" ||
+    interaction.customId === "quiz_decide"
+  ) {
+    const state = quizState[userId];
+    if (!state) return; // クイズ中じゃないなら無視
+
+    // -------------------------
+    // 武器選択（ページ番号つき）
+    // -------------------------
+    if (interaction.customId.startsWith("quiz_select_weapon_")) {
+      const selected = interaction.values;
+
+      state.selectedWeapons = [
+        ...new Set([...state.selectedWeapons, ...selected]),
+      ];
+
+      await interaction.deferUpdate(); // タイムアウト防止
+      return;
+    }
+
+    // -------------------------
+    // 次のカテゴリへ
+    // -------------------------
+    if (interaction.customId === "quiz_next_category") {
+      state.currentCategoryIndex++;
+
+      if (state.currentCategoryIndex >= state.categoryOrder.length) {
+        const decideButton = new ButtonBuilder()
+          .setCustomId("quiz_decide")
+          .setLabel("決定")
+          .setStyle(ButtonStyle.Primary);
+
+        const row = new ActionRowBuilder().addComponents(decideButton);
+
+        await interaction.update({
+          content: "全カテゴリの選択が終わったよ！「決定」で判定するね。",
+          components: [row],
+        });
+
+        return;
+      }
+
+      await interaction.update({
+        content: "次のカテゴリに進むよ！",
+        components: [],
+      });
+
+      showCategoryMenu(interaction.channel, userId);
+      return;
+    }
+
+    // -------------------------
+    // 決定ボタン
+    // -------------------------
+    if (interaction.customId === "quiz_decide") {
+      const selected = state.selectedWeapons;
+      const answers = state.answers;
+
+      const isCorrect =
+        answers.every((a) => selected.includes(a)) &&
+        selected.length === answers.length;
+
+      const embed = new EmbedBuilder()
+        .setTitle(isCorrect ? "🎉 正解！" : "❌ 不正解…")
+        .setDescription(
+          `正解ブキ：\n${answers.join("\n")}\n\nあなたの選択：\n${selected.join("\n")}`,
+        )
+        .setColor(isCorrect ? 0xffd700 : 0xff0000);
+
+      await interaction.reply({ embeds: [embed] });
+      return;
+    }
+
+    return; // ★ クイズ処理はここで終了
+  }
+
+  // ============================================================
+  // ここから下は「クイズ以外の処理」
+  // ============================================================
+
+  // -------------------------
   // ルール選択
+  // -------------------------
   if (interaction.customId === "rule_multi_select") {
     const selectedRules = interaction.values;
 
@@ -635,7 +1270,9 @@ client.on("interactionCreate", async (interaction) => {
     );
   }
 
+  // -------------------------
   // ブキ抽選モード選択
+  // -------------------------
   if (interaction.customId === "weapon_mode_select") {
     const mode = interaction.values[0];
 
@@ -680,7 +1317,9 @@ client.on("interactionCreate", async (interaction) => {
     }
   }
 
+  // -------------------------
   // ブキ割り当て（選んだプレイヤーに割り当て）
+  // -------------------------
   if (interaction.customId === "weapon_player_select") {
     await interaction.deferReply();
 
@@ -708,7 +1347,9 @@ client.on("interactionCreate", async (interaction) => {
     );
   }
 
+  // -------------------------
   // チーム分け（50人対応）
+  // -------------------------
   if (
     interaction.customId === "player_team_select_1" ||
     interaction.customId === "player_team_select_2"
@@ -769,10 +1410,8 @@ client.on("interactionCreate", async (interaction) => {
     const sumA = bestTeamA.reduce((a, b) => a + b.xp, 0);
     const sumB = bestTeamB.reduce((a, b) => a + b.xp, 0);
 
-    //    const teamAList = bestTeamA.map((p) => `${p.player} (${p.xp})`).join("\n");
-    //    const teamBList = bestTeamB.map((p) => `${p.player} (${p.xp})`).join("\n");
-    const teamAList = bestTeamA.map((p) => `${p.player}`).join("\n");
-    const teamBList = bestTeamB.map((p) => `${p.player}`).join("\n");
+    const teamAList = bestTeamA.map((p) => `${p.player} (${p.xp})`).join("\n");
+    const teamBList = bestTeamB.map((p) => `${p.player} (${p.xp})`).join("\n");
 
     return interaction.editReply(
       `🎯 **選択人数: ${selectedPlayers.length}人**\n` +
