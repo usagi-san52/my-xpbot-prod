@@ -682,6 +682,68 @@ async function listPlayers(guildId) {
   return data ?? [];
 }
 
+// カテゴリ3つずつに分割する関数
+function chunkCategories(categories) {
+  const chunkSize = 3;
+  const chunks = [];
+
+  for (let i = 0; i < categories.length; i += chunkSize) {
+    chunks.push(categories.slice(i, i + chunkSize));
+  }
+
+  return chunks;
+}
+
+// 3カテゴリまとめ方式：完全動作版
+function showCategoryGroupMenu(channel, userId) {
+  const state = quizState[userId];
+  const group = state.categoryChunks[state.currentGroupIndex];
+
+  const rows = [];
+
+  for (const category of group) {
+    const weapons = weaponCategories[category];
+
+    // ★ カテゴリごとに25件ずつページング
+    for (let i = 0; i < weapons.length; i += 25) {
+      const pageItems = weapons.slice(i, i + 25);
+
+      const menu = new StringSelectMenuBuilder()
+        .setCustomId(`quiz_select_weapon_${category}_${i / 25}`)
+        .setPlaceholder(`${category}（ページ ${i / 25 + 1}）`)
+        .setMinValues(0)
+        .setMaxValues(pageItems.length)
+        .addOptions(
+          pageItems.map((w) => ({
+            label: w,
+            value: w,
+          })),
+        );
+
+      rows.push(new ActionRowBuilder().addComponents(menu));
+    }
+  }
+
+  // ★ 次へ＋決定ボタンを同じ行にまとめる（行数節約）
+  const nextButton = new ButtonBuilder()
+    .setCustomId("quiz_next_group")
+    .setLabel("次へ")
+    .setStyle(ButtonStyle.Secondary);
+
+  const decideButton = new ButtonBuilder()
+    .setCustomId("quiz_decide")
+    .setLabel("決定")
+    .setStyle(ButtonStyle.Primary);
+
+  rows.push(new ActionRowBuilder().addComponents(nextButton, decideButton));
+
+  const embed = new EmbedBuilder()
+    .setTitle("武器選択（3カテゴリまとめ）")
+    .setDescription(`今回のカテゴリ：${group.join(" / ")}`);
+
+  channel.send({ embeds: [embed], components: rows });
+}
+
 // ===============================
 // カテゴリ別 SelectMenu を作る
 // ===============================
@@ -726,49 +788,6 @@ function createCategoryMenus(categories) {
   rows.push(new ActionRowBuilder().addComponents(decideButton));
 
   return rows;
-}
-
-// 今のカテゴリのメニューを出す関数
-function showCategoryMenu(channel, userId) {
-  const state = quizState[userId];
-  const category = state.categoryOrder[state.currentCategoryIndex];
-  const weapons = weaponCategories[category];
-
-  const rows = [];
-  const pageSize = 25;
-
-  for (let i = 0; i < weapons.length; i += pageSize) {
-    const pageItems = weapons.slice(i, i + pageSize);
-
-    const menu = new StringSelectMenuBuilder()
-      .setCustomId(`quiz_select_weapon_${i / pageSize}`)
-      .setPlaceholder(
-        `${category} のブキを選んでね（ページ ${i / pageSize + 1}）`,
-      )
-      .setMinValues(0)
-      .setMaxValues(pageItems.length)
-      .addOptions(
-        pageItems.map((w) => ({
-          label: w,
-          value: w,
-        })),
-      );
-
-    rows.push(new ActionRowBuilder().addComponents(menu));
-  }
-
-  const nextButton = new ButtonBuilder()
-    .setCustomId("quiz_next_category")
-    .setLabel("次のカテゴリへ")
-    .setStyle(ButtonStyle.Secondary);
-
-  rows.push(new ActionRowBuilder().addComponents(nextButton));
-
-  const embed = new EmbedBuilder()
-    .setTitle("カテゴリ選択")
-    .setDescription(`今は **${category}** のブキを選んでね`);
-
-  channel.send({ embeds: [embed], components: rows });
 }
 
 client.once("clientReady", () => {
@@ -914,17 +933,33 @@ client.on("messageCreate", async (message) => {
     const [sub, sp] = randomKey.split("+");
     const answers = quizWeapons[randomKey];
 
-    const categoryOrder = Object.keys(weaponCategories);
+    //    const categoryOrder = Object.keys(weaponCategories);
+    const categoryOrder = [
+      "シューター",
+      "ローラー",
+      "チャージャー",
+      "スロッシャー",
+      "スピナー",
+      "マニューバー",
+      "シェルター",
+      "ブラスター",
+      "フデ",
+      "ストリンガー",
+      "ワイパー",
+    ];
+    const userId = message.author.id; // ★ 必須
 
-    quizState[message.author.id] = {
+    // ★ 新しいクイズ状態
+    quizState[userId] = {
       answers,
       selectedWeapons: [],
-      streak: quizState[message.author.id]?.streak || 0,
+      streak: quizState[userId]?.streak || 0,
       categoryOrder,
-      currentCategoryIndex: 0,
+      categoryChunks: chunkCategories(categoryOrder), // ★ 4カテゴリずつに分割
+      currentGroupIndex: 0, // ★ 最初のグループ
     };
 
-    // ★ まず問題文を出す
+    // ★ 問題文を出す
     const embed = new EmbedBuilder()
       .setTitle("🎯 サブ＋スペシャル当てゲーム")
       .setDescription(
@@ -934,8 +969,18 @@ client.on("messageCreate", async (message) => {
 
     await message.reply({ embeds: [embed] });
 
-    // ★ 次にカテゴリ選択メニューを出す
-    showCategoryMenu(message.channel, message.author.id);
+    // ★ quiz_start ボタンを送る（これが必須）
+    const startButton = new ButtonBuilder()
+      .setCustomId("quiz_start")
+      .setLabel("武器選択を開始")
+      .setStyle(ButtonStyle.Primary);
+
+    const row = new ActionRowBuilder().addComponents(startButton);
+
+    await message.channel.send({
+      content: "武器選択を始めるよ！",
+      components: [row],
+    });
   }
 
   // -------------------------
@@ -1139,86 +1184,90 @@ client.on("messageCreate", async (message) => {
 
 client.on("interactionCreate", async (interaction) => {
   const userId = interaction.user.id;
+  const state = quizState[userId];
+  if (!state) return; // クイズ中じゃないなら無視
 
-  // ============================================================
-  // クイズ関連の処理（customId で判定する）
-  // ============================================================
-  if (
-    interaction.customId.startsWith("quiz_select_weapon_") ||
-    interaction.customId === "quiz_next_category" ||
-    interaction.customId === "quiz_decide"
-  ) {
-    const state = quizState[userId];
-    if (!state) return; // クイズ中じゃないなら無視
+  // -------------------------
+  // 初期 UI 表示
+  // -------------------------
+  if (interaction.customId === "quiz_start") {
+    await interaction.update({
+      content: "カテゴリを選んでね！",
+      components: [],
+    });
 
-    // -------------------------
-    // 武器選択（ページ番号つき）
-    // -------------------------
-    if (interaction.customId.startsWith("quiz_select_weapon_")) {
-      const selected = interaction.values;
+    showCategoryGroupMenu(interaction.channel, userId);
+    return;
+  }
 
-      state.selectedWeapons = [
-        ...new Set([...state.selectedWeapons, ...selected]),
-      ];
+  // -------------------------
+  // 武器選択（カテゴリ名＋ページ番号）
+  // -------------------------
+  if (interaction.customId.startsWith("quiz_select_weapon_")) {
+    const selected = interaction.values; // 武器名だけが入る
 
-      await interaction.deferUpdate(); // タイムアウト防止
-      return;
-    }
+    // ★ 選択された武器を蓄積（重複なし）
+    state.selectedWeapons = [
+      ...new Set([...state.selectedWeapons, ...selected]),
+    ];
 
-    // -------------------------
-    // 次のカテゴリへ
-    // -------------------------
-    if (interaction.customId === "quiz_next_category") {
-      state.currentCategoryIndex++;
+    await interaction.deferUpdate(); // タイムアウト防止
+    return;
+  }
 
-      if (state.currentCategoryIndex >= state.categoryOrder.length) {
-        const decideButton = new ButtonBuilder()
-          .setCustomId("quiz_decide")
-          .setLabel("決定")
-          .setStyle(ButtonStyle.Primary);
+  // -------------------------
+  // 次のカテゴリグループへ
+  // -------------------------
+  if (interaction.customId === "quiz_next_group") {
+    state.currentGroupIndex++;
 
-        const row = new ActionRowBuilder().addComponents(decideButton);
+    // 全カテゴリグループ終了
+    if (state.currentGroupIndex >= state.categoryChunks.length) {
+      const decideButton = new ButtonBuilder()
+        .setCustomId("quiz_decide")
+        .setLabel("決定")
+        .setStyle(ButtonStyle.Primary);
 
-        await interaction.update({
-          content: "全カテゴリの選択が終わったよ！「決定」で判定するね。",
-          components: [row],
-        });
-
-        return;
-      }
+      const row = new ActionRowBuilder().addComponents(decideButton);
 
       await interaction.update({
-        content: "次のカテゴリに進むよ！",
-        components: [],
+        content: "全カテゴリの選択が終わったよ！「決定」で判定するね。",
+        components: [row],
       });
 
-      showCategoryMenu(interaction.channel, userId);
       return;
     }
 
-    // -------------------------
-    // 決定ボタン
-    // -------------------------
-    if (interaction.customId === "quiz_decide") {
-      const selected = state.selectedWeapons;
-      const answers = state.answers;
+    // 次のカテゴリグループへ
+    await interaction.update({
+      content: "次のカテゴリに進むよ！",
+      components: [],
+    });
 
-      const isCorrect =
-        answers.every((a) => selected.includes(a)) &&
-        selected.length === answers.length;
+    showCategoryGroupMenu(interaction.channel, userId);
+    return;
+  }
 
-      const embed = new EmbedBuilder()
-        .setTitle(isCorrect ? "🎉 正解！" : "❌ 不正解…")
-        .setDescription(
-          `正解ブキ：\n${answers.join("\n")}\n\nあなたの選択：\n${selected.join("\n")}`,
-        )
-        .setColor(isCorrect ? 0xffd700 : 0xff0000);
+  // -------------------------
+  // 決定ボタン
+  // -------------------------
+  if (interaction.customId === "quiz_decide") {
+    const selected = state.selectedWeapons;
+    const answers = state.answers;
 
-      await interaction.reply({ embeds: [embed] });
-      return;
-    }
+    const isCorrect =
+      answers.every((a) => selected.includes(a)) &&
+      selected.length === answers.length;
 
-    return; // ★ クイズ処理はここで終了
+    const embed = new EmbedBuilder()
+      .setTitle(isCorrect ? "🎉 正解！" : "❌ 不正解…")
+      .setDescription(
+        `正解ブキ：\n${answers.join("\n")}\n\nあなたの選択：\n${selected.join("\n")}`,
+      )
+      .setColor(isCorrect ? 0xffd700 : 0xff0000);
+
+    await interaction.reply({ embeds: [embed] });
+    return;
   }
 
   // ============================================================
